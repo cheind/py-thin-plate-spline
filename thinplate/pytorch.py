@@ -19,7 +19,7 @@ def tps(theta, ctrl, grid):
     ------
     theta: Nx(T+3)x2 tensor
         Batch size N, T+3 model parameters for T control points in dx and dy.
-    ctrl: NxTx2 tensor
+    ctrl: NxTx2 tensor or Tx2 tensor
         T control points in normalized image coordinates [0..1]
     grid: NxHxWx3 tensor
         Grid locations to evaluate with homogeneous 1 in first coordinate.
@@ -29,7 +29,12 @@ def tps(theta, ctrl, grid):
     z: NxHxWx2 tensor
         Function values at each grid location in dx and dy.
     '''
+    
     N, H, W, _ = grid.size()
+
+    if ctrl.dim() == 2:
+        ctrl = ctrl.expand(N, *ctrl.size())
+    
     T = ctrl.shape[1]
     
     diff = grid[...,1:].unsqueeze(-2) - ctrl.unsqueeze(1).unsqueeze(1)
@@ -49,7 +54,7 @@ def tps_grid(theta, ctrl, size):
     ------
     theta: Nx(T+3)x2 tensor
         Batch size N, T+3 model parameters for T control points in dx and dy.
-    ctrl: NxTx2 tensor
+    ctrl: NxTx2 tensor, or Tx2 tensor
         T control points in normalized image coordinates [0..1]
     size: tuple
         Output grid size as NxCxHxW. C unused. This defines the output image
