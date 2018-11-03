@@ -5,62 +5,78 @@
 
 import numpy as np
 
-class TPS:
-    def __init__(self):
-        self.p = None
-        
-    def fit(self, c, lambd=0.):        
-        n = c.shape[0]        
-        U = self._u(self._d(c, c))
-        K = U + np.eye(n)*lambd
+class TPS:       
+    @staticmethod
+    def fit(c, lambd=0.):        
+        n = c.shape[0]
 
-        P = np.ones((n, 3))
+        U = TPS.u(TPS.d(c, c))
+        K = U + np.eye(n, dtype=np.float32)*lambd
+
+        P = np.ones((n, 3), dtype=np.float32)
         P[:, 1:] = c[:, :2]
 
-        v = np.zeros(n+3)
+        v = np.zeros(n+3, dtype=np.float32)
         v[:n] = c[:, -1]
 
-        A = np.zeros((n+3, n+3))
+        A = np.zeros((n+3, n+3), dtype=np.float32)
         A[:n, :n] = K
         A[:n, -3:] = P
         A[-3:, :n] = P.T
 
-        self.p = np.linalg.solve(A, v) # p has structure w,a
-        self.c = np.copy(c)
+        theta = np.linalg.solve(A, v) # p has structure w,a
+        return theta
         
-    def __call__(self, x):
-        x = np.atleast_2d(x)
-        U = self._u(self._d(x, self.c))
-        b = np.dot(U, self.p[:-3])
-        return self.p[-3] + self.p[-2]*x[:, 0] + self.p[-1]*x[:, 1] + b
-        
-    def _d(self, a, b):
+    @staticmethod
+    def d(a, b):
         return np.sqrt(np.square(a[:, None, :2] - b[None, :, :2]).sum(-1))
-    
-    def _u(self, r):
+
+    @staticmethod
+    def u(r):
         return r**2 * np.log(r + 1e-6)
 
-def compute_densegrid(img, c_src, c_dst, dshape=None):
-    sshape = img.shape
-    if dshape is None:
-        dshape = sshape
-    
+    @staticmethod
+    def z(x, c, theta):
+        x = np.atleast_2d(x)
+        U = TPS.u(TPS.d(x, c))
+        b = np.dot(U, theta[:-3])
+        return theta[-3] + theta[-2]*x[:, 0] + theta[-1]*x[:, 1] + b
+
+def normalized_grid(shape):
+    X = np.linspace(0, 1, shape[1], dtype=np.float32) # note: for torch this needs to be changed
+    Y = np.linspace(0, 1, shape[0], dtype=np.float32)
+    X, Y = np.meshgrid(X, Y)
+    xy = np.hstack((X.reshape(-1, 1),Y.reshape(-1, 1)))
+    return X, Y, xy
+
+def compute_densegrid(c_src, c_dst, dshape):    
     delta = c_src - c_dst
     
     cx = np.column_stack((c_dst, delta[:, 0]))
     cy = np.column_stack((c_dst, delta[:, 1]))
-    
-    tps_x, tps_y = TPS(), TPS()
-    tps_x.fit(cx)
-    tps_y.fit(cy)
-    
-    X = np.linspace(0, 1, dshape[1]) # note: for torch this needs to be changed
-    Y = np.linspace(0, 1, dshape[0])
-    X, Y = np.meshgrid(X, Y)
-    xy = np.hstack((X.reshape(-1, 1),Y.reshape(-1, 1)))
+        
+    X, Y, xy = normalized_grid(dshape)
 
-    map_x = (tps_x(xy).reshape(dshape[:2]) + X).astype('float32')
-    map_y = (tps_y(xy).reshape(dshape[:2]) + Y).astype('float32')
+    theta_dx = TPS.fit(cx)
+    theta_dy = TPS.fit(cy)
+    
+    dx = TPS.z(xy, c_dst, theta_dx).reshape(dshape[:2])
+    dy = TPS.z(xy, c_dst, theta_dy).reshape(dshape[:2])
+
+    map_x = (X + dx).astype('float32')
+    map_y = (Y + dy).astype('float32')
+    grid = np.stack((map_x, map_y), -1)
+    
+    return grid # H'xW'x2 grid[i,j] in range [0..1]
+
+def compute_densegrid_from_theta(c_dst, theta_dx, theta_dy, dshape):    
+    X, Y, xy = normalized_grid(dshape)
+
+    dx = TPS.z(xy, c_dst, theta_dx).reshape(dshape[:2])
+    dy = TPS.z(xy, c_dst, theta_dy).reshape(dshape[:2])
+
+    map_x = (X + dx).astype('float32')
+    map_y = (Y + dy).astype('float32')
     grid = np.stack((map_x, map_y), -1)
     
     return grid # H'xW'x2 grid[i,j] in range [0..1]
