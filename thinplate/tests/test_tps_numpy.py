@@ -3,7 +3,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 import thinplate.numpy as tps
     
-def test_fit():
+def test_numpy_fit():
     c = np.array([
         [0., 0, 0.0],
         [1., 0, 0.0],
@@ -38,7 +38,7 @@ def test_fit():
     assert_allclose(tps.TPS.z(c, c, theta), c[:, 2], atol=1e-3)
 
 
-def test_densegrid():
+def test_numpy_densegrid():
 
     # enlarges a small rectangle to full view
 

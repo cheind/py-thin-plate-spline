@@ -49,7 +49,7 @@ def normalized_grid(shape):
     xy = np.hstack((X.reshape(-1, 1),Y.reshape(-1, 1)))
     return X, Y, xy
 
-def compute_densegrid(c_src, c_dst, dshape):    
+def compute_densegrid(c_src, c_dst, dshape, return_theta=False):    
     delta = c_src - c_dst
     
     cx = np.column_stack((c_dst, delta[:, 0]))
@@ -60,6 +60,21 @@ def compute_densegrid(c_src, c_dst, dshape):
     theta_dx = TPS.fit(cx)
     theta_dy = TPS.fit(cy)
     
+    dx = TPS.z(xy, c_dst, theta_dx).reshape(dshape[:2])
+    dy = TPS.z(xy, c_dst, theta_dy).reshape(dshape[:2])
+
+    map_x = (X + dx).astype('float32')
+    map_y = (Y + dy).astype('float32')
+    grid = np.stack((map_x, map_y), -1)
+
+    if return_theta:
+        return grid, theta_dx, theta_dy
+    else:
+        return grid # H'xW'x2 grid[i,j] in range [0..1]
+
+def compute_densegrid_from_theta(c_dst, theta_dx, theta_dy, dshape):    
+    X, Y, xy = normalized_grid(dshape)
+
     dx = TPS.z(xy, c_dst, theta_dx).reshape(dshape[:2])
     dy = TPS.z(xy, c_dst, theta_dy).reshape(dshape[:2])
 
@@ -87,19 +102,6 @@ def densegrid_to_remap(grid, sshape):
     '''
 
     return grid[:, :, 0] * sshape[1], grid[:, :, 1] * sshape[0]
-
-
-def compute_densegrid_from_theta(c_dst, theta_dx, theta_dy, dshape):    
-    X, Y, xy = normalized_grid(dshape)
-
-    dx = TPS.z(xy, c_dst, theta_dx).reshape(dshape[:2])
-    dy = TPS.z(xy, c_dst, theta_dy).reshape(dshape[:2])
-
-    map_x = (X + dx).astype('float32')
-    map_y = (Y + dy).astype('float32')
-    grid = np.stack((map_x, map_y), -1)
-    
-    return grid # H'xW'x2 grid[i,j] in range [0..1]
 
 
 if __name__ == '__main__':
