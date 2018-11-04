@@ -76,6 +76,26 @@ def tps_grid(theta, ctrl, size):
     z = tps(theta, ctrl, grid)
     return (grid[...,1:] + z)*2-1 # [-1,1] range required by F.sample_grid
 
+
+def uniform_control_points(shape):
+    '''Uniformly places control points aranged in grid accross normalized image coordinates.
+    
+    Params
+    ------
+    shape : tuple
+        HxW defining the number of control points in height and width dimension
+
+    Returns
+    -------
+    points: HxWx2 tensor
+        Control points over [0,1] normalized image range.
+    '''
+    H,W = shape[:2]    
+    c = torch.zeros(H, W, 2)
+    c[..., 0] = torch.linspace(0, 1, W)
+    c[..., 1] = torch.linspace(0, 1, H).unsqueeze(-1)
+    return c
+
 if __name__ == '__main__':
     c = torch.tensor([
         [0., 0],
