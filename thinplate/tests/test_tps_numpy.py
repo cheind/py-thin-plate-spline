@@ -64,7 +64,8 @@ def test_densegrid():
 
     grid = tps.compute_densegrid(c_src, c_dst, (20,20))
 
-    warped = cv2.remap(img, grid[:, :, 0] * img.shape[1], grid[:, :, 1] * img.shape[0], cv2.INTER_CUBIC)
+    mapx, mapy = tps.densegrid_to_remap(grid, img.shape)
+    warped = cv2.remap(img, mapx, mapy, cv2.INTER_CUBIC)
     assert img.min() == 0.
     assert img.max() == 255.
     assert warped.shape == (20,20)

@@ -69,6 +69,26 @@ def compute_densegrid(c_src, c_dst, dshape):
     
     return grid # H'xW'x2 grid[i,j] in range [0..1]
 
+def densegrid_to_remap(grid, sshape):
+    '''Convert a dense grid to OpenCV's remap compatible maps.
+    
+    Params
+    ------
+    grid : HxWx2 array
+        Normalized flow field coordinates as computed by compute_densegrid.
+    sshape : tuple
+        Height and width of source image in pixels.
+
+
+    Returns
+    -------
+    mapx : HxW array
+    mapy : HxW array
+    '''
+
+    return grid[:, :, 0] * sshape[1], grid[:, :, 1] * sshape[0]
+
+
 def compute_densegrid_from_theta(c_dst, theta_dx, theta_dy, dshape):    
     X, Y, xy = normalized_grid(dshape)
 
