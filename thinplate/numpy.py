@@ -49,7 +49,7 @@ def normalized_grid(shape):
     xy = np.hstack((X.reshape(-1, 1),Y.reshape(-1, 1)))
     return X, Y, xy
 
-def compute_densegrid(c_src, c_dst, dshape, return_theta=False):    
+def densegrid(c_src, c_dst, dshape, return_theta=False):    
     delta = c_src - c_dst
     
     cx = np.column_stack((c_dst, delta[:, 0]))
@@ -72,7 +72,7 @@ def compute_densegrid(c_src, c_dst, dshape, return_theta=False):
     else:
         return grid # H'xW'x2 grid[i,j] in range [0..1]
 
-def compute_densegrid_from_theta(c_dst, theta_dx, theta_dy, dshape):    
+def densegrid_from_theta(c_dst, theta_dx, theta_dy, dshape):    
     X, Y, xy = normalized_grid(dshape)
 
     dx = TPS.z(xy, c_dst, theta_dx).reshape(dshape[:2])
@@ -102,28 +102,3 @@ def densegrid_to_remap(grid, sshape):
     '''
 
     return grid[:, :, 0] * sshape[1], grid[:, :, 1] * sshape[0]
-
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
-    c = np.array([
-        [0., 0, 0.5],
-        [1., 0, 0.0],
-        [1., 1, 0.0],
-        [0, 1, 0.0],
-    ])
-
-    tps = TPS()
-    tps.fit(c)
-
-    X = np.linspace(0, 1, 10)
-    Y = np.linspace(0, 1, 10)
-    X, Y = np.meshgrid(X, Y)
-    xy = np.hstack((X.reshape(-1, 1),Y.reshape(-1, 1)))
-    Z = tps(xy).reshape(10, 10)
-
-    fig, ax = plt.subplots()
-    c = ax.contour(X, Y, Z)
-    ax.clabel(c, inline=1, fontsize=10)
-    plt.show()    

@@ -1,7 +1,7 @@
 
 import numpy as np
 from numpy.testing import assert_allclose
-import thinplate.numpy as tps
+import thinplate as tps
     
 def test_numpy_fit():
     c = np.array([
@@ -62,10 +62,11 @@ def test_numpy_densegrid():
         [10, 20],  
     ]) / 40.
 
-    grid = tps.compute_densegrid(c_src, c_dst, (20,20))
+    grid = tps.densegrid(c_src, c_dst, (20,20))
 
     mapx, mapy = tps.densegrid_to_remap(grid, img.shape)
     warped = cv2.remap(img, mapx, mapy, cv2.INTER_CUBIC)
+
     assert img.min() == 0.
     assert img.max() == 255.
     assert warped.shape == (20,20)

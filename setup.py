@@ -20,7 +20,7 @@ setup(
     url='https://github.com/cheind/py-thin-plate-spline',
     license='MIT',
     install_requires=required,
-    packages=['thinplate'],
+    packages=['thinplate', 'thinplate.tests'],
     include_package_data=True,
     keywords='thin plate spline spatial transformer network'
 )
