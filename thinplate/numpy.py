@@ -42,49 +42,56 @@ class TPS:
         b = np.dot(U, theta[:-3])
         return theta[-3] + theta[-2]*x[:, 0] + theta[-1]*x[:, 1] + b
 
-def normalized_grid(shape):
-    X = np.linspace(0, 1, shape[1], dtype=np.float32) # note: for torch this needs to be changed
-    Y = np.linspace(0, 1, shape[0], dtype=np.float32)
-    X, Y = np.meshgrid(X, Y)
-    xy = np.hstack((X.reshape(-1, 1),Y.reshape(-1, 1)))
-    return X, Y, xy
+def uniform_grid(shape):
+    '''Uniform grid coordinates.
+    
+    Params
+    ------
+    shape : tuple
+        HxW defining the number of height and width dimension of the grid
 
-def densegrid(c_src, c_dst, dshape, return_theta=False):    
+    Returns
+    -------
+    points: HxWx2 tensor
+        Grid coordinates over [0,1] normalized image range.
+    '''
+
+    H,W = shape[:2]    
+    c = np.empty((H, W, 2))
+    c[..., 0] = np.linspace(0, 1, W, dtype=np.float32)
+    c[..., 1] = np.expand_dims(np.linspace(0, 1, H, dtype=np.float32), -1)
+
+    return c
+    
+def tps_grid(c_src, c_dst, dshape, return_theta=False):    
     delta = c_src - c_dst
     
     cx = np.column_stack((c_dst, delta[:, 0]))
     cy = np.column_stack((c_dst, delta[:, 1]))
         
-    X, Y, xy = normalized_grid(dshape)
-
     theta_dx = TPS.fit(cx)
     theta_dy = TPS.fit(cy)
+
+    grid = tps_grid_from_theta(c_dst, theta_dx, theta_dy, dshape)
     
-    dx = TPS.z(xy, c_dst, theta_dx).reshape(dshape[:2])
-    dy = TPS.z(xy, c_dst, theta_dy).reshape(dshape[:2])
-
-    map_x = (X + dx).astype('float32')
-    map_y = (Y + dy).astype('float32')
-    grid = np.stack((map_x, map_y), -1)
-
     if return_theta:
         return grid, theta_dx, theta_dy
     else:
         return grid # H'xW'x2 grid[i,j] in range [0..1]
 
-def densegrid_from_theta(c_dst, theta_dx, theta_dy, dshape):    
-    X, Y, xy = normalized_grid(dshape)
+def tps_grid_from_theta(c_dst, theta_dx, theta_dy, dshape):    
+    
+    ugrid = uniform_grid(dshape)
 
-    dx = TPS.z(xy, c_dst, theta_dx).reshape(dshape[:2])
-    dy = TPS.z(xy, c_dst, theta_dy).reshape(dshape[:2])
+    dx = TPS.z(ugrid.reshape((-1, 2)), c_dst, theta_dx).reshape(dshape[:2])
+    dy = TPS.z(ugrid.reshape((-1, 2)), c_dst, theta_dy).reshape(dshape[:2])
+    dgrid = np.stack((dx, dy), -1)
 
-    map_x = (X + dx).astype('float32')
-    map_y = (Y + dy).astype('float32')
-    grid = np.stack((map_x, map_y), -1)
+    grid = dgrid + ugrid
     
     return grid # H'xW'x2 grid[i,j] in range [0..1]
 
-def densegrid_to_remap(grid, sshape):
+def tps_grid_to_remap(grid, sshape):
     '''Convert a dense grid to OpenCV's remap compatible maps.
     
     Params
@@ -101,4 +108,7 @@ def densegrid_to_remap(grid, sshape):
     mapy : HxW array
     '''
 
-    return grid[:, :, 0] * sshape[1], grid[:, :, 1] * sshape[0]
+    mx = (grid[:, :, 0] * sshape[1]).astype(np.float32)
+    my = (grid[:, :, 1] * sshape[0]).astype(np.float32)
+
+    return mx, my

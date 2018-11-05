@@ -77,7 +77,7 @@ def tps_grid(theta, ctrl, size):
     return (grid[...,1:] + z)*2-1 # [-1,1] range required by F.sample_grid
 
 
-def uniform_control_points(shape):
+def uniform_grid(shape):
     '''Uniformly places control points aranged in grid accross normalized image coordinates.
     
     Params

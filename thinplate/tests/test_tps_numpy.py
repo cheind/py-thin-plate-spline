@@ -36,8 +36,7 @@ def test_numpy_fit():
 
     theta = tps.TPS.fit(c)
     assert_allclose(tps.TPS.z(c, c, theta), c[:, 2], atol=1e-3)
-
-
+    
 def test_numpy_densegrid():
 
     # enlarges a small rectangle to full view
@@ -62,9 +61,9 @@ def test_numpy_densegrid():
         [10, 20],  
     ]) / 40.
 
-    grid = tps.densegrid(c_src, c_dst, (20,20))
+    grid = tps.tps_grid(c_src, c_dst, (20,20))
 
-    mapx, mapy = tps.densegrid_to_remap(grid, img.shape)
+    mapx, mapy = tps.tps_grid_to_remap(grid, img.shape)
     warped = cv2.remap(img, mapx, mapy, cv2.INTER_CUBIC)
 
     assert img.min() == 0.

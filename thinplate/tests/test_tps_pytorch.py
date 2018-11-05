@@ -24,7 +24,7 @@ def test_pytorch_grid():
         [10, 20],  
     ], dtype=np.float32) / 40.
 
-    np_grid, ndx, ndy = tps.densegrid(c_src, c_dst, (20,20), return_theta=True)
+    np_grid, ndx, ndy = tps.tps_grid(c_src, c_dst, (20,20), return_theta=True)
     theta = torch.tensor(np.stack((ndx, ndy), -1)).unsqueeze(0)
     pth_grid = tps.torch.tps_grid(theta, torch.tensor(c_dst), (1, 1, 20, 20)).squeeze().numpy()
     pth_grid = (pth_grid + 1) / 2 # convert [-1,1] range to [0,1]
