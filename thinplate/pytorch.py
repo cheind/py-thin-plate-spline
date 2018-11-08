@@ -17,8 +17,8 @@ def tps(theta, ctrl, grid):
     
     Params
     ------
-    theta: Nx(T+3)x2 tensor
-        Batch size N, T+3 model parameters for T control points in dx and dy.
+    theta: Nx(T+3)x2 tensor, or Nx(T+2)x2 tensor
+        Batch size N, T+3 or T+2 (reduced form) model parameters for T control points in dx and dy.
     ctrl: NxTx2 tensor or Tx2 tensor
         T control points in normalized image coordinates [0..1]
     grid: NxHxWx3 tensor
@@ -40,10 +40,17 @@ def tps(theta, ctrl, grid):
     diff = grid[...,1:].unsqueeze(-2) - ctrl.unsqueeze(1).unsqueeze(1)
     D = torch.sqrt((diff**2).sum(-1))
     U = (D**2) * torch.log(D + 1e-6)
+
+    w, a = theta[:, :-3, :], theta[:, -3:, :]
+
+    reduced = T + 2  == theta.shape[1]
+    if reduced:
+        w = torch.cat((-w.sum(dim=1, keepdim=True), w), dim=1) 
+
     # U is NxHxWxT
-    b = torch.bmm(U.view(N, -1, T), theta[:, :-3]).view(N,H,W,2)
+    b = torch.bmm(U.view(N, -1, T), w).view(N,H,W,2)
     # b is NxHxWx2
-    z = torch.bmm(grid.view(N,-1,3), theta[:,-3:]).view(N,H,W,2) + b
+    z = torch.bmm(grid.view(N,-1,3), a).view(N,H,W,2) + b
     
     return z
 

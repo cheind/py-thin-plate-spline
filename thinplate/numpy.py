@@ -7,7 +7,7 @@ import numpy as np
 
 class TPS:       
     @staticmethod
-    def fit(c, lambd=0.):        
+    def fit(c, lambd=0., reduced=False):        
         n = c.shape[0]
 
         U = TPS.u(TPS.d(c, c))
@@ -25,7 +25,7 @@ class TPS:
         A[-3:, :n] = P.T
 
         theta = np.linalg.solve(A, v) # p has structure w,a
-        return theta
+        return theta[1:] if reduced else theta
         
     @staticmethod
     def d(a, b):
@@ -39,8 +39,12 @@ class TPS:
     def z(x, c, theta):
         x = np.atleast_2d(x)
         U = TPS.u(TPS.d(x, c))
-        b = np.dot(U, theta[:-3])
-        return theta[-3] + theta[-2]*x[:, 0] + theta[-1]*x[:, 1] + b
+        w, a = theta[:-3], theta[-3:]
+        reduced = theta.shape[0] == c.shape[0] + 2
+        if reduced:
+            w = np.concatenate((-np.sum(w, keepdims=True), w))
+        b = np.dot(U, w)
+        return a[0] + a[1]*x[:, 0] + a[2]*x[:, 1] + b
 
 def uniform_grid(shape):
     '''Uniform grid coordinates.
@@ -63,14 +67,14 @@ def uniform_grid(shape):
 
     return c
     
-def tps_grid(c_src, c_dst, dshape, return_theta=False):    
+def tps_grid(c_src, c_dst, dshape, return_theta=False, reduced=True):    
     delta = c_src - c_dst
     
     cx = np.column_stack((c_dst, delta[:, 0]))
     cy = np.column_stack((c_dst, delta[:, 1]))
         
-    theta_dx = TPS.fit(cx)
-    theta_dy = TPS.fit(cy)
+    theta_dx = TPS.fit(cx, reduced=reduced)
+    theta_dy = TPS.fit(cy, reduced=reduced)
 
     grid = tps_grid_from_theta(c_dst, theta_dx, theta_dy, dshape)
     
@@ -82,6 +86,8 @@ def tps_grid(c_src, c_dst, dshape, return_theta=False):
 def tps_grid_from_theta(c_dst, theta_dx, theta_dy, dshape):    
     
     ugrid = uniform_grid(dshape)
+
+    reduced = c_dst.shape[0] + 2 == theta_dx.shape[0]
 
     dx = TPS.z(ugrid.reshape((-1, 2)), c_dst, theta_dx).reshape(dshape[:2])
     dy = TPS.z(ugrid.reshape((-1, 2)), c_dst, theta_dy).reshape(dshape[:2])

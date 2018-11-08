@@ -27,6 +27,13 @@ def test_numpy_fit():
     assert_allclose(theta[-3:], [1, 0, 0])
     assert_allclose(tps.TPS.z(c, c, theta), c[:, 2], atol=1e-3)
 
+    # reduced form
+    theta = tps.TPS.fit(c, reduced=True)
+    assert len(theta) == c.shape[0] + 2
+    assert_allclose(theta[:-3], 0)
+    assert_allclose(theta[-3:], [1, 0, 0])
+    assert_allclose(tps.TPS.z(c, c, theta), c[:, 2], atol=1e-3)
+
     c = np.array([
         [0., 0, -.5],
         [1., 0, 0.5],
@@ -62,6 +69,7 @@ def test_numpy_densegrid():
     ]) / 40.
 
     grid = tps.tps_grid(c_src, c_dst, (20,20))
+    grid_r = tps.tps_grid(c_src, c_dst, (20,20), reduced=True)
 
     mapx, mapy = tps.tps_grid_to_remap(grid, img.shape)
     warped = cv2.remap(img, mapx, mapy, cv2.INTER_CUBIC)
@@ -71,3 +79,4 @@ def test_numpy_densegrid():
     assert warped.shape == (20,20)
     assert warped.min() == 255.
     assert warped.max() == 255.
+    assert np.linalg.norm(grid.reshape(-1,2) - grid_r.reshape(-1,2)) < 1e-3
