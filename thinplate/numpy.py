@@ -67,7 +67,7 @@ def uniform_grid(shape):
 
     return c
     
-def tps_grid(c_src, c_dst, dshape, return_theta=False, reduced=True):    
+def tps_theta_from_points(c_src, c_dst, reduced=False):
     delta = c_src - c_dst
     
     cx = np.column_stack((c_dst, delta[:, 0]))
@@ -76,21 +76,16 @@ def tps_grid(c_src, c_dst, dshape, return_theta=False, reduced=True):
     theta_dx = TPS.fit(cx, reduced=reduced)
     theta_dy = TPS.fit(cy, reduced=reduced)
 
-    grid = tps_grid_from_theta(c_dst, theta_dx, theta_dy, dshape)
-    
-    if return_theta:
-        return grid, theta_dx, theta_dy
-    else:
-        return grid # H'xW'x2 grid[i,j] in range [0..1]
+    return np.stack((theta_dx, theta_dy), -1)
 
-def tps_grid_from_theta(c_dst, theta_dx, theta_dy, dshape):    
-    
+
+def tps_grid(theta, c_dst, dshape):    
     ugrid = uniform_grid(dshape)
 
-    reduced = c_dst.shape[0] + 2 == theta_dx.shape[0]
+    reduced = c_dst.shape[0] + 2 == theta.shape[0]
 
-    dx = TPS.z(ugrid.reshape((-1, 2)), c_dst, theta_dx).reshape(dshape[:2])
-    dy = TPS.z(ugrid.reshape((-1, 2)), c_dst, theta_dy).reshape(dshape[:2])
+    dx = TPS.z(ugrid.reshape((-1, 2)), c_dst, theta[:, 0]).reshape(dshape[:2])
+    dy = TPS.z(ugrid.reshape((-1, 2)), c_dst, theta[:, 1]).reshape(dshape[:2])
     dgrid = np.stack((dx, dy), -1)
 
     grid = dgrid + ugrid

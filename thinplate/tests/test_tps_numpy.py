@@ -68,8 +68,11 @@ def test_numpy_densegrid():
         [10, 20],  
     ]) / 40.
 
-    grid = tps.tps_grid(c_src, c_dst, (20,20))
-    grid_r = tps.tps_grid(c_src, c_dst, (20,20), reduced=True)
+    theta = tps.tps_theta_from_points(c_src, c_dst)
+    theta_r = tps.tps_theta_from_points(c_src, c_dst, reduced=True)
+
+    grid = tps.tps_grid(theta, c_dst, (20,20))
+    grid_r = tps.tps_grid(theta_r, c_dst, (20,20))
 
     mapx, mapy = tps.tps_grid_to_remap(grid, img.shape)
     warped = cv2.remap(img, mapx, mapy, cv2.INTER_CUBIC)

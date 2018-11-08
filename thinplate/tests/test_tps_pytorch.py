@@ -24,15 +24,18 @@ def test_pytorch_grid():
         [10, 20],  
     ], dtype=np.float32) / 40.
 
-    np_grid, ndx, ndy = tps.tps_grid(c_src, c_dst, (20,20), return_theta=True)
-    np_grid_r, ndx_r, ndy_r = tps.tps_grid(c_src, c_dst, (20,20), return_theta=True, reduced=True)
+    theta = tps.tps_theta_from_points(c_src, c_dst)
+    theta_r = tps.tps_theta_from_points(c_src, c_dst, reduced=True)
 
-    theta = torch.tensor(np.stack((ndx, ndy), -1)).unsqueeze(0)
-    pth_grid = tps.torch.tps_grid(theta, torch.tensor(c_dst), (1, 1, 20, 20)).squeeze().numpy()
+    np_grid = tps.tps_grid(theta, c_dst, (20,20))
+    np_grid_r = tps.tps_grid(theta_r, c_dst, (20,20))
+    
+    pth_theta = torch.tensor(theta).unsqueeze(0)
+    pth_grid = tps.torch.tps_grid(pth_theta, torch.tensor(c_dst), (1, 1, 20, 20)).squeeze().numpy()
     pth_grid = (pth_grid + 1) / 2 # convert [-1,1] range to [0,1]
 
-    theta_r = torch.tensor(np.stack((ndx_r, ndy_r), -1)).unsqueeze(0)
-    pth_grid_r = tps.torch.tps_grid(theta_r, torch.tensor(c_dst), (1, 1, 20, 20)).squeeze().numpy()
+    pth_theta_r = torch.tensor(theta_r).unsqueeze(0)
+    pth_grid_r = tps.torch.tps_grid(pth_theta_r, torch.tensor(c_dst), (1, 1, 20, 20)).squeeze().numpy()
     pth_grid_r = (pth_grid_r + 1) / 2 # convert [-1,1] range to [0,1]
 
     assert_allclose(np_grid, pth_grid)
