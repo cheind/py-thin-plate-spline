@@ -83,6 +83,17 @@ def tps_grid(theta, ctrl, size):
     z = tps(theta, ctrl, grid)
     return (grid[...,1:] + z)*2-1 # [-1,1] range required by F.sample_grid
 
+def tps_sparse(theta, ctrl, xy):
+    if xy.dim() == 2:
+        xy = xy.expand(theta.shape[0], *xy.size())
+
+    N, M = xy.shape[:2]
+    grid = xy.new(N, M, 3)
+    grid[..., 0] = 1.
+    grid[..., 1:] = xy
+
+    z = tps(theta, ctrl, grid.view(N,M,1,3))
+    return xy + z.view(N, M, 2)
 
 def uniform_grid(shape):
     '''Uniformly places control points aranged in grid accross normalized image coordinates.
